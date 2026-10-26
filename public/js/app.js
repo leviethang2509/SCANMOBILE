@@ -55,7 +55,10 @@ const elements = {
   btnIncStartPage: document.getElementById('btnIncStartPage'),
   previewFilenameDisplay: document.getElementById('previewFilenameDisplay'),
   chkWatermarkPage: document.getElementById('chkWatermarkPage'),
+  pageSizeSelect: document.getElementById('pageSizeSelect'),
   filterSelect: document.getElementById('filterSelect'),
+  fileImageInput: document.getElementById('fileImageInput'),
+  btnUploadImages: document.getElementById('btnUploadImages'),
 
   // Camera & Viewfinder (B3)
   cameraSelect: document.getElementById('cameraSelect'),
@@ -82,6 +85,7 @@ const elements = {
   btnCloseReviewModal: document.getElementById('btnCloseReviewModal'),
   btnCancelReview: document.getElementById('btnCancelReview'),
   btnReviewAddMore: document.getElementById('btnReviewAddMore'),
+  btnReviewUploadMore: document.getElementById('btnReviewUploadMore'),
   btnConfirmSavePdf: document.getElementById('btnConfirmSavePdf'),
   modalReviewCount: document.getElementById('modalReviewCount'),
   reviewDocTitle: document.getElementById('reviewDocTitle'),
@@ -613,6 +617,55 @@ function captureCurrentPage() {
   state.isCapturing = false;
 }
 
+// Thêm ảnh từ máy / thư viện ảnh điện thoại để convert sang PDF giữ nguyên ảnh
+function handleImageFilesUpload(files) {
+  if (!files || files.length === 0) return;
+  const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (imageFiles.length === 0) {
+    showToast('Vui lòng chọn các tệp hình ảnh hợp lệ (JPG, PNG, WebP...)', 'error');
+    return;
+  }
+
+  showToast(`Đang tải và xử lý ${imageFiles.length} hình ảnh...`, 'success');
+
+  let loadedCount = 0;
+  // Sắp xếp tự nhiên theo tên file nếu chọn nhiều ảnh
+  imageFiles.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+  imageFiles.forEach((file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const img = new Image();
+      img.onload = () => {
+        const pageNum = state.startPage + state.capturedPages.length;
+        const newPageItem = {
+          id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          dataUrl: dataUrl,
+          pageNum: pageNum,
+          rotation: 0,
+          width: img.naturalWidth || img.width,
+          height: img.naturalHeight || img.height,
+          timestamp: new Date().toLocaleTimeString('vi-VN')
+        };
+        state.capturedPages.push(newPageItem);
+        appendThumbnailToFilmstrip(newPageItem);
+        updateActivePageUI();
+
+        loadedCount++;
+        if (loadedCount === imageFiles.length) {
+          showToast(`Đã thêm thành công ${loadedCount} ảnh vào hồ sơ!`, 'success');
+          if (elements.reviewModal.classList.contains('show')) {
+            renderReviewModalGallery();
+          }
+        }
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // Canvas image filter processing (Enhance contrast & sharpen text)
 function applyCanvasFilter(ctx, width, height, mode) {
   const imgData = ctx.getImageData(0, 0, width, height);
@@ -880,37 +933,83 @@ async function generateAndExportPdf() {
 
   try {
     const fileName = computeFilename();
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      compress: true
-    });
-
-    const a4Width = 210;
-    const a4Height = 297;
+    const pageSizeMode = (elements.pageSizeSelect && elements.pageSizeSelect.value) || 'original';
+    let pdf = null;
 
     for (let i = 0; i < state.capturedPages.length; i++) {
       const pageItem = state.capturedPages[i];
-      if (i > 0) {
-        pdf.addPage('a4', 'portrait');
-      }
+      
+      // Giữ nguyên hình ảnh & kích thước thực tế
+      const processed = await getProcessedImage(pageItem.dataUrl, pageItem.rotation);
+      const imgW = processed.width;
+      const imgH = processed.height;
 
-      // Convert rotation if needed using temporary canvas
-      const processedImage = await getRotatedImage(pageItem.dataUrl, pageItem.rotation);
+      if (pageSizeMode === 'original') {
+        // GIỮ NGUYÊN HÌNH ẢNH 100%: Trang PDF khớp chuẩn xác pixel của ảnh gốc, không bị co giãn, không bị méo!
+        const isLandscape = imgW > imgH;
+        if (i === 0) {
+          pdf = new jsPDF({
+            orientation: isLandscape ? 'l' : 'p',
+            unit: 'px',
+            format: [imgW, imgH],
+            hotfixes: ['px_scaling']
+          });
+        } else {
+          pdf.addPage([imgW, imgH], isLandscape ? 'l' : 'p');
+        }
 
-      // Fit image onto A4 page with 5mm margin
-      const margin = 5;
-      const targetW = a4Width - margin * 2;
-      const targetH = a4Height - margin * 2;
+        pdf.addImage(processed.dataUrl, 'JPEG', 0, 0, imgW, imgH, undefined, 'NONE');
 
-      pdf.addImage(processedImage, 'JPEG', margin, margin, targetW, targetH, undefined, 'FAST');
+        // Optional page number watermark at bottom
+        if (elements.chkWatermarkPage.checked) {
+          const fontSize = Math.max(14, Math.round(imgW * 0.022));
+          pdf.setFontSize(fontSize);
+          pdf.setTextColor(120, 120, 120);
+          pdf.text(`Trang ${pageItem.pageNum}`, imgW - fontSize * 4.5, imgH - fontSize * 1.2);
+        }
+      } else {
+        // Khổ A4 tiêu chuẩn: Căn vừa tỉ lệ (contain), tuyệt đối không méo hình!
+        const a4W = 210;
+        const a4H = 297;
+        const isLandscape = imgW > imgH;
+        const pageW = isLandscape ? a4H : a4W;
+        const pageH = isLandscape ? a4W : a4H;
 
-      // Optional: Imprint page number watermark at bottom
-      if (elements.chkWatermarkPage.checked) {
-        pdf.setFontSize(10);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(`Trang ${pageItem.pageNum}`, a4Width - 25, a4Height - 5);
+        if (i === 0) {
+          pdf = new jsPDF({
+            orientation: isLandscape ? 'l' : 'p',
+            unit: 'mm',
+            format: 'a4'
+          });
+        } else {
+          pdf.addPage('a4', isLandscape ? 'l' : 'p');
+        }
+
+        const margin = 5;
+        const maxW = pageW - margin * 2;
+        const maxH = pageH - margin * 2;
+        const imgRatio = imgW / imgH;
+        const pageRatio = maxW / maxH;
+
+        let renderW, renderH;
+        if (imgRatio > pageRatio) {
+          renderW = maxW;
+          renderH = maxW / imgRatio;
+        } else {
+          renderH = maxH;
+          renderW = maxH * imgRatio;
+        }
+
+        const posX = margin + (maxW - renderW) / 2;
+        const posY = margin + (maxH - renderH) / 2;
+
+        pdf.addImage(processed.dataUrl, 'JPEG', posX, posY, renderW, renderH, undefined, 'NONE');
+
+        if (elements.chkWatermarkPage.checked) {
+          pdf.setFontSize(10);
+          pdf.setTextColor(120, 120, 120);
+          pdf.text(`Trang ${pageItem.pageNum}`, pageW - 25, pageH - 4);
+        }
       }
     }
 
@@ -1003,25 +1102,38 @@ async function generateAndExportPdf() {
   }
 }
 
-// Rotate image to new canvas for PDF inclusion
-function getRotatedImage(dataUrl, degrees) {
+// Giữ nguyên hình ảnh và kích thước tự nhiên của ảnh (hỗ trợ xoay nếu có)
+function getProcessedImage(dataUrl, degrees) {
   return new Promise((resolve) => {
-    if (degrees === 0) {
-      resolve(dataUrl);
-      return;
-    }
     const img = new Image();
     img.onload = () => {
+      const isRotated = degrees !== 0 && degrees % 360 !== 0;
+      if (!isRotated) {
+        resolve({
+          dataUrl: dataUrl,
+          width: img.naturalWidth || img.width,
+          height: img.naturalHeight || img.height
+        });
+        return;
+      }
       const c = document.createElement('canvas');
       const rad = (degrees * Math.PI) / 180;
       const is90or270 = degrees === 90 || degrees === 270;
-      c.width = is90or270 ? img.height : img.width;
-      c.height = is90or270 ? img.width : img.height;
+      const naturalW = img.naturalWidth || img.width;
+      const naturalH = img.naturalHeight || img.height;
+      const w = is90or270 ? naturalH : naturalW;
+      const h = is90or270 ? naturalW : naturalH;
+      c.width = w;
+      c.height = h;
       const ctx = c.getContext('2d');
-      ctx.translate(c.width / 2, c.height / 2);
+      ctx.translate(w / 2, h / 2);
       ctx.rotate(rad);
-      ctx.drawImage(img, -img.width / 2, -img.height / 2);
-      resolve(c.toDataURL('image/jpeg', 0.92));
+      ctx.drawImage(img, -naturalW / 2, -naturalH / 2);
+      resolve({
+        dataUrl: c.toDataURL('image/jpeg', 0.95),
+        width: w,
+        height: h
+      });
     };
     img.src = dataUrl;
   });
@@ -1257,6 +1369,26 @@ function setupEventListeners() {
   // B3: Capture Actions
   elements.btnCapture.addEventListener('click', captureCurrentPage);
   elements.btnClearAllSnaps.addEventListener('click', clearAllCapturedPages);
+
+  // Chọn ảnh có sẵn từ máy / thư viện để convert sang PDF
+  if (elements.btnUploadImages) {
+    elements.btnUploadImages.addEventListener('click', () => {
+      if (elements.fileImageInput) elements.fileImageInput.click();
+    });
+  }
+
+  if (elements.btnReviewUploadMore) {
+    elements.btnReviewUploadMore.addEventListener('click', () => {
+      if (elements.fileImageInput) elements.fileImageInput.click();
+    });
+  }
+
+  if (elements.fileImageInput) {
+    elements.fileImageInput.addEventListener('change', (e) => {
+      handleImageFilesUpload(e.target.files);
+      e.target.value = '';
+    });
+  }
 
   // B4: Review & Confirm Actions
   elements.btnOpenReview.addEventListener('click', openReviewModal);

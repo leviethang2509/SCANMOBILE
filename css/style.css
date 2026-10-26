@@ -1403,6 +1403,15 @@ body {
     display: none; /* Hide keyboard hotkey hint on touch devices */
   }
 
+  #btnUploadImages {
+    padding: 12px;
+    border-radius: var(--radius-full);
+  }
+
+  #btnUploadImages span {
+    display: none;
+  }
+
   #btnOpenReview {
     padding: 12px 16px;
     font-size: 0.85rem;
