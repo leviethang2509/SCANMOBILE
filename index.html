@@ -13,6 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -110,14 +111,22 @@
               Thư mục xuất file PDF <span class="required">*</span>
             </label>
             <div class="input-with-button">
-              <input type="text" id="folderDisplayInput" class="form-input form-input-mono" placeholder="Nhấp chọn thư mục..." readonly>
-              <button type="button" id="btnPickFolder" class="btn btn-primary" title="Chọn thư mục trên máy tính">
+              <input type="text" id="folderDisplayInput" class="form-input form-input-mono" placeholder="Nhấp chọn cây thư mục..." readonly>
+              <button type="button" id="btnOpenFolderTree" class="btn btn-primary" title="Mở cây thư mục để chọn hoặc tạo thư mục lưu">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 8 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+                  <path d="M12 11v6"/>
+                  <path d="M9 14h6"/>
                 </svg>
+                Cây Thư Mục
+              </button>
+              <button type="button" id="btnPickFolder" class="btn btn-secondary btn-sm" title="Chọn thư mục hệ thống (PC)">
                 Chọn...
               </button>
             </div>
+            <button type="button" id="btnMobileFolderGuide" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 5px; font-size: 0.725rem; justify-content: flex-start; color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);">
+              📱 Hướng dẫn chọn Cây Thư Mục trên iPhone & Android (APK) ➔
+            </button>
           </div>
 
           <!-- Lịch sử thư mục đã lưu -->
@@ -388,6 +397,113 @@
 
   </div>
 
+  <!-- MODAL CÂY THƯ MỤC LƯU TRỮ CHO IPHONE, APK & PC -->
+  <div id="folderTreeModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 680px;">
+      
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 8 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+            <path d="M12 11v6"/>
+            <path d="M9 14h6"/>
+          </svg>
+          Chọn & Quản Lý Cây Thư Mục Lưu
+        </div>
+        <button type="button" class="modal-close-btn" id="btnCloseFolderTreeModal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="gap: 14px;">
+        
+        <!-- Toolbar for Folder Tree -->
+        <div class="tree-toolbar-box">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button type="button" id="btnTreeAddFolder" class="btn btn-secondary btn-sm" title="Tạo thư mục mới ở cùng cấp">
+              + Thư Mục Mới
+            </button>
+            <button type="button" id="btnTreeAddSubFolder" class="btn btn-secondary btn-sm" title="Tạo thư mục con bên trong">
+              + Thư Mục Con
+            </button>
+            <button type="button" id="btnTreeDeleteFolder" class="btn btn-danger btn-sm" title="Xóa thư mục đã chọn">
+              Xóa
+            </button>
+          </div>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">📱 iPhone, APK & Máy tính</span>
+        </div>
+
+        <!-- Interactive Tree Container -->
+        <div class="folder-tree-box" id="folderTreeContainer">
+          <!-- Tree Nodes will be rendered here dynamically -->
+        </div>
+
+        <!-- Current Selected Path Breadcrumb -->
+        <div class="tree-current-selection">
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">ĐƯỜNG DẪN THƯ MỤC ĐÃ CHỌN:</span>
+          <div id="treeSelectedPathDisplay" class="tree-path-text">📁 Thư Mục Gốc / Hồ Sơ Quét</div>
+        </div>
+
+        <!-- Mobile Notice Banner -->
+        <div class="tree-mobile-notice">
+          <div style="font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+            <span>💡</span> Hướng dẫn lưu vào cây thư mục thực tế trên iPhone & APK:
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+            • <strong>iPhone</strong>: Khi xuất file xong, bấm <em>"Chia Sẻ / Lưu Tệp"</em> ➔ chọn <strong>"Lưu vào Tệp (Files)"</strong> ➔ Bạn có thể chọn bất kỳ cây thư mục nào trên máy hoặc iCloud Drive!<br>
+            • <strong>Android (APK)</strong>: Bấm <em>"Chia Sẻ / Lưu Tệp"</em> ➔ chọn <strong>"Lưu vào Bộ nhớ máy / Drive"</strong> để lưu vào thư mục mong muốn.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="btnCancelFolderTree" class="btn btn-secondary">
+          Đóng
+        </button>
+        <button type="button" id="btnConfirmFolderTree" class="btn btn-emerald btn-lg">
+          ✓ Xác Nhận Chọn Thư Mục Này
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL HƯỚNG DẪN IPHONE & APK -->
+  <div id="mobileGuideModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 580px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          📱 Hướng Dẫn Chọn Thư Mục Trên iPhone & APK
+        </div>
+        <button type="button" class="modal-close-btn" id="btnCloseMobileGuideModal">&times;</button>
+      </div>
+      <div class="modal-body" style="font-size: 0.875rem; gap: 14px;">
+        <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 12px;">
+          <h4 style="color: #818cf8; margin-bottom: 6px;">🍏 Cách lưu vào Cây Thư Mục trên iPhone / iPad:</h4>
+          <ol style="padding-left: 20px; line-height: 1.6; color: var(--text-main);">
+            <li>Sau khi quét và bấm <strong>"Xác nhận & Xuất PDF"</strong>.</li>
+            <li>Tại bảng hoàn tất, bấm nút <strong>"📱 Chia Sẻ / Lưu Vào Tệp"</strong>.</li>
+            <li>Trên bảng tùy chọn của iOS, tìm và chọn dòng <strong>"Lưu vào Tệp" (Save to Files)</strong>.</li>
+            <li>Tại đây bạn sẽ thấy <strong>Cây Thư Mục hoàn chỉnh</strong>: <em>Trên iPhone của tôi</em>, <em>iCloud Drive</em>, hoặc bấm icon Folder góc trên để <em>tạo thư mục mới</em>!</li>
+          </ol>
+        </div>
+
+        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px;">
+          <h4 style="color: #10b981; margin-bottom: 6px;">🤖 Cách lưu vào Thư Mục trên Android / APK:</h4>
+          <ol style="padding-left: 20px; line-height: 1.6; color: var(--text-main);">
+            <li>Bấm <strong>"Chia Sẻ / Lưu Tệp"</strong> ➔ Chọn ứng dụng <strong>Quản lý tệp (Files)</strong> hoặc <strong>Google Drive</strong>.</li>
+            <li>Duyệt đến thư mục bạn muốn lưu (hoặc tạo thư mục mới).</li>
+            <li>Hoặc bạn có thể cài đặt web thành ứng dụng dạng <strong>APK / PWA</strong> bằng cách nhấn menu trình duyệt (3 chấm) ➔ <strong>"Cài đặt ứng dụng / Thêm vào màn hình chính"</strong>!</li>
+          </ol>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnGotMobileGuide" class="btn btn-primary" style="width: 100%;">
+          Đã Hiểu & Bắt Đầu
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- B4 MODAL: XEM LẠI VÀ XÁC NHẬN LƯU (REVIEW MODAL) -->
   <div id="reviewModal" class="modal-backdrop">
     <div class="modal-content">
@@ -516,12 +632,17 @@
           </div>
 
           <div style="display: flex; flex-direction: column; width: 100%; gap: 10px; margin-top: 10px;">
+            <!-- Nút chọn cây thư mục lưu trực tiếp cho iPhone và APK -->
+            <button type="button" id="btnSaveToNativeTree" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+              📱 Chọn Cây Thư Mục Lưu (iPhone Tệp / APK / Drive)
+            </button>
+
             <div style="display: flex; gap: 10px; width: 100%;">
-              <button type="button" id="btnOpenPdfTab" class="btn btn-primary" style="flex: 1;">
+              <button type="button" id="btnOpenPdfTab" class="btn btn-secondary" style="flex: 1;">
                 Xem File PDF Vừa Tạo
               </button>
               <button type="button" id="btnOpenExplorerFolder" class="btn btn-secondary" style="flex: 1;">
-                Mở Thư Mục Chứa File
+                Tải Lại / Mở Thư Mục
               </button>
             </div>
             

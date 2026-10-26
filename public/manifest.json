@@ -1,0 +1,16 @@
+{
+  "name": "Cam Scan to PDF - Quét Tài Liệu",
+  "short_name": "ScanPDF",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b0f19",
+  "theme_color": "#0b0f19",
+  "description": "Ứng dụng quét tài liệu qua camera và xuất PDF theo cây thư mục cho iPhone và Android",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%236366f1'/%3E%3Cpath d='M368 128h-64l-32-48h-80l-32 48h-64c-26.5 0-48 21.5-48 48v224c0 26.5 21.5 48 48 48h272c26.5 0 48-21.5 48-48V176c0-26.5-21.5-48-48-48z' fill='none' stroke='%23ffffff' stroke-width='32'/%3E%3Ccircle cx='256' cy='288' r='80' fill='none' stroke='%23ffffff' stroke-width='32'/%3E%3C/svg%3E",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

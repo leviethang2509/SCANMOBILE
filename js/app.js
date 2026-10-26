@@ -24,7 +24,9 @@ const state = {
   lastGeneratedPdfBlob: null,
   lastGeneratedFilename: '',
   serverAvailable: false,
-  audioContext: null
+  audioContext: null,
+  folderTree: null,
+  selectedTreeNode: null
 };
 
 // DOM Elements
@@ -108,6 +110,23 @@ const elements = {
   btnOpenPdfTab: document.getElementById('btnOpenPdfTab'),
   btnOpenExplorerFolder: document.getElementById('btnOpenExplorerFolder'),
   btnStartNewScan: document.getElementById('btnStartNewScan'),
+  btnSaveToNativeTree: document.getElementById('btnSaveToNativeTree'),
+
+  // Folder Tree Modal & Mobile Guide
+  btnOpenFolderTree: document.getElementById('btnOpenFolderTree'),
+  btnMobileFolderGuide: document.getElementById('btnMobileFolderGuide'),
+  folderTreeModal: document.getElementById('folderTreeModal'),
+  btnCloseFolderTreeModal: document.getElementById('btnCloseFolderTreeModal'),
+  btnCancelFolderTree: document.getElementById('btnCancelFolderTree'),
+  btnConfirmFolderTree: document.getElementById('btnConfirmFolderTree'),
+  folderTreeContainer: document.getElementById('folderTreeContainer'),
+  treeSelectedPathDisplay: document.getElementById('treeSelectedPathDisplay'),
+  btnTreeAddFolder: document.getElementById('btnTreeAddFolder'),
+  btnTreeAddSubFolder: document.getElementById('btnTreeAddSubFolder'),
+  btnTreeDeleteFolder: document.getElementById('btnTreeDeleteFolder'),
+  mobileGuideModal: document.getElementById('mobileGuideModal'),
+  btnCloseMobileGuideModal: document.getElementById('btnCloseMobileGuideModal'),
+  btnGotMobileGuide: document.getElementById('btnGotMobileGuide'),
 
   // Toast
   toastContainer: document.getElementById('toastContainer')
@@ -118,6 +137,7 @@ const elements = {
 // ==========================================
 
 async function initApp() {
+  initFolderTree();
   loadStoredPreferences();
   await checkServerStatus();
   await initIndexedDB();
@@ -291,6 +311,251 @@ async function loadSavedDirectoryHandle() {
   } catch (e) {
     console.warn('Could not restore directory handle:', e);
   }
+}
+
+// ==========================================
+// CÂY THƯ MỤC LƯU TRỮ CHO IPHONE, APK & PC
+// ==========================================
+
+const DEFAULT_FOLDER_TREE = {
+  id: 'root',
+  name: 'Thư Mục Gốc',
+  path: 'HoSoQuet',
+  expanded: true,
+  children: [
+    {
+      id: 'hs_kh',
+      name: 'Hồ Sơ Khách Hàng',
+      path: 'HoSoQuet/KhachHang',
+      expanded: true,
+      children: [
+        { id: 'hs_kh_vip', name: 'Khách Hàng VIP', path: 'HoSoQuet/KhachHang/VIP', children: [] },
+        { id: 'hs_kh_moi', name: 'Khách Hàng Mới', path: 'HoSoQuet/KhachHang/Moi', children: [] }
+      ]
+    },
+    {
+      id: 'hs_hd',
+      name: 'Hợp Đồng & Pháp Lý',
+      path: 'HoSoQuet/HopDong',
+      expanded: true,
+      children: [
+        { id: 'hs_hd_2026', name: 'Hợp Đồng Năm 2026', path: 'HoSoQuet/HopDong/2026', children: [] },
+        { id: 'hs_hd_kinhte', name: 'Hợp Đồng Kinh Tế', path: 'HoSoQuet/HopDong/KinhTe', children: [] }
+      ]
+    },
+    {
+      id: 'hs_thue',
+      name: 'Hóa Đơn & Chứng Từ Thuế',
+      path: 'HoSoQuet/ChungTuThue',
+      children: []
+    },
+    {
+      id: 'hs_datdai',
+      name: 'Hồ Sơ Nhà Đất - Công Chứng',
+      path: 'HoSoQuet/NhaDat',
+      children: []
+    },
+    {
+      id: 'hs_tam',
+      name: 'Tài Liệu Tạm Thời',
+      path: 'HoSoQuet/TamThoi',
+      children: []
+    }
+  ]
+};
+
+function initFolderTree() {
+  try {
+    const saved = localStorage.getItem('camScan_folderTree');
+    state.folderTree = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_FOLDER_TREE));
+  } catch (e) {
+    state.folderTree = JSON.parse(JSON.stringify(DEFAULT_FOLDER_TREE));
+  }
+  state.selectedTreeNode = state.folderTree;
+}
+
+function saveFolderTreeToStorage() {
+  try {
+    localStorage.setItem('camScan_folderTree', JSON.stringify(state.folderTree));
+  } catch (e) {}
+}
+
+function renderFolderTree() {
+  const container = elements.folderTreeContainer;
+  if (!container) return;
+  container.innerHTML = '';
+  renderTreeNode(state.folderTree, container, 0);
+  updateTreeSelectionDisplay();
+}
+
+function renderTreeNode(node, parentElement, depth) {
+  const nodeWrap = document.createElement('div');
+  nodeWrap.className = 'tree-node-wrapper';
+
+  const nodeItem = document.createElement('div');
+  nodeItem.className = 'tree-node-item' + (state.selectedTreeNode && state.selectedTreeNode.id === node.id ? ' selected' : '');
+  nodeItem.dataset.nodeId = node.id;
+
+  const hasChildren = node.children && node.children.length > 0;
+
+  // Toggle arrow
+  const toggleIcon = document.createElement('span');
+  toggleIcon.className = 'tree-toggle-icon';
+  toggleIcon.innerHTML = hasChildren ? (node.expanded ? '▼' : '▶') : '•';
+  toggleIcon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (hasChildren) {
+      node.expanded = !node.expanded;
+      saveFolderTreeToStorage();
+      renderFolderTree();
+    }
+  });
+
+  // Folder icon
+  const folderIcon = document.createElement('span');
+  folderIcon.className = 'tree-folder-icon';
+  folderIcon.textContent = node.id === 'root' ? '🗄️' : (hasChildren && node.expanded ? '📂' : '📁');
+
+  // Name
+  const nodeName = document.createElement('span');
+  nodeName.className = 'tree-node-name';
+  nodeName.textContent = node.name;
+
+  nodeItem.appendChild(toggleIcon);
+  nodeItem.appendChild(folderIcon);
+  nodeItem.appendChild(nodeName);
+
+  // Click to select
+  nodeItem.addEventListener('click', () => {
+    state.selectedTreeNode = node;
+    renderFolderTree();
+  });
+
+  nodeWrap.appendChild(nodeItem);
+
+  // Children
+  if (hasChildren) {
+    const childrenContainer = document.createElement('div');
+    childrenContainer.className = 'tree-children-container' + (node.expanded ? '' : ' collapsed');
+    node.children.forEach(child => {
+      renderTreeNode(child, childrenContainer, depth + 1);
+    });
+    nodeWrap.appendChild(childrenContainer);
+  }
+
+  parentElement.appendChild(nodeWrap);
+}
+
+function updateTreeSelectionDisplay() {
+  if (state.selectedTreeNode && elements.treeSelectedPathDisplay) {
+    elements.treeSelectedPathDisplay.textContent = `📁 ${state.selectedTreeNode.name} (${state.selectedTreeNode.path})`;
+  }
+}
+
+function openFolderTreeModal() {
+  renderFolderTree();
+  if (elements.folderTreeModal) elements.folderTreeModal.classList.add('show');
+}
+
+function closeFolderTreeModal() {
+  if (elements.folderTreeModal) elements.folderTreeModal.classList.remove('show');
+}
+
+function confirmSelectedFolderTree() {
+  if (!state.selectedTreeNode) return;
+  state.folderPath = state.selectedTreeNode.path;
+  elements.folderDisplayInput.value = `${state.selectedTreeNode.name} (${state.selectedTreeNode.path})`;
+  localStorage.setItem('camScan_lastFolderPath', state.selectedTreeNode.path);
+  mergeFolderHistory([state.selectedTreeNode.path]);
+  updateFolderBadge(true, state.selectedTreeNode.name);
+  closeFolderTreeModal();
+  showToast(`Đã chọn cây thư mục: ${state.selectedTreeNode.name}`, 'success');
+}
+
+function addTreeFolderPrompt(isSubfolder) {
+  const targetParent = isSubfolder ? state.selectedTreeNode : (findParentNode(state.folderTree, state.selectedTreeNode ? state.selectedTreeNode.id : 'root') || state.folderTree);
+  if (!targetParent) return;
+
+  const folderName = prompt(`Nhập tên thư mục ${isSubfolder ? 'con mới trong [' + targetParent.name + ']' : 'mới'}:`, 'Thư Mục Mới');
+  if (folderName && folderName.trim()) {
+    const clean = folderName.trim().replace(/[<>:"/\\|?*]/g, '_');
+    const newId = 'folder_' + Date.now();
+    const newPath = targetParent.id === 'root' ? clean : `${targetParent.path}/${clean}`;
+
+    if (!targetParent.children) targetParent.children = [];
+    const newNode = {
+      id: newId,
+      name: clean,
+      path: newPath,
+      expanded: true,
+      children: []
+    };
+    targetParent.children.push(newNode);
+    targetParent.expanded = true;
+    state.selectedTreeNode = newNode;
+    saveFolderTreeToStorage();
+    renderFolderTree();
+    showToast(`Đã tạo thư mục: ${clean}`, 'success');
+  }
+}
+
+function findParentNode(current, targetId) {
+  if (!current || !current.children) return null;
+  for (let child of current.children) {
+    if (child.id === targetId) return current;
+    const found = findParentNode(child, targetId);
+    if (found) return found;
+  }
+  return null;
+}
+
+function deleteSelectedTreeFolder() {
+  if (!state.selectedTreeNode || state.selectedTreeNode.id === 'root') {
+    showToast('Không thể xóa thư mục gốc!', 'error');
+    return;
+  }
+  if (confirm(`Bạn có chắc muốn xóa thư mục [${state.selectedTreeNode.name}] và tất cả thư mục con bên trong?`)) {
+    const parent = findParentNode(state.folderTree, state.selectedTreeNode.id);
+    if (parent && parent.children) {
+      parent.children = parent.children.filter(c => c.id !== state.selectedTreeNode.id);
+      state.selectedTreeNode = parent;
+      saveFolderTreeToStorage();
+      renderFolderTree();
+      showToast('Đã xóa thư mục.', 'success');
+    }
+  }
+}
+
+// Lưu vào Cây Thư Mục thực tế trên iPhone (Tệp / Files / iCloud) & Android (APK)
+async function saveToNativeFolderTree() {
+  if (!state.lastGeneratedPdfBlob) {
+    showToast('Chưa có file PDF để lưu!', 'error');
+    return;
+  }
+
+  const fileName = state.lastGeneratedFilename || computeFilename();
+  const file = new File([state.lastGeneratedPdfBlob], fileName, { type: 'application/pdf' });
+
+  // Web Share API: Trình kích hoạt Cây Thư Mục gốc của iPhone (Lưu vào Tệp) & Android (APK)
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: fileName,
+        text: `Lưu file ${fileName} vào cây thư mục máy`
+      });
+      showToast('Đã mở bảng lưu cây thư mục trên máy!', 'success');
+      return;
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.warn('Share tree error:', err);
+      }
+    }
+  }
+
+  // Fallback download if share not supported or cancelled
+  downloadBlob(state.lastGeneratedPdfBlob, fileName);
+  showToast(`Đã tải file ${fileName}. Bạn có thể di chuyển vào thư mục mong muốn.`, 'success');
 }
 
 // B1: Choose folder action (supports browser Directory Picker & server fallback)
@@ -1445,6 +1710,51 @@ function setupEventListeners() {
   });
 
   elements.btnStartNewScan.addEventListener('click', prepareNextScanSession);
+
+  // Folder Tree Modal listeners
+  if (elements.btnOpenFolderTree) {
+    elements.btnOpenFolderTree.addEventListener('click', openFolderTreeModal);
+  }
+  if (elements.btnCloseFolderTreeModal) {
+    elements.btnCloseFolderTreeModal.addEventListener('click', closeFolderTreeModal);
+  }
+  if (elements.btnCancelFolderTree) {
+    elements.btnCancelFolderTree.addEventListener('click', closeFolderTreeModal);
+  }
+  if (elements.btnConfirmFolderTree) {
+    elements.btnConfirmFolderTree.addEventListener('click', confirmSelectedFolderTree);
+  }
+  if (elements.btnTreeAddFolder) {
+    elements.btnTreeAddFolder.addEventListener('click', () => addTreeFolderPrompt(false));
+  }
+  if (elements.btnTreeAddSubFolder) {
+    elements.btnTreeAddSubFolder.addEventListener('click', () => addTreeFolderPrompt(true));
+  }
+  if (elements.btnTreeDeleteFolder) {
+    elements.btnTreeDeleteFolder.addEventListener('click', deleteSelectedTreeFolder);
+  }
+
+  // Mobile Folder Guide Modal listeners
+  if (elements.btnMobileFolderGuide) {
+    elements.btnMobileFolderGuide.addEventListener('click', () => {
+      if (elements.mobileGuideModal) elements.mobileGuideModal.classList.add('show');
+    });
+  }
+  if (elements.btnCloseMobileGuideModal) {
+    elements.btnCloseMobileGuideModal.addEventListener('click', () => {
+      if (elements.mobileGuideModal) elements.mobileGuideModal.classList.remove('show');
+    });
+  }
+  if (elements.btnGotMobileGuide) {
+    elements.btnGotMobileGuide.addEventListener('click', () => {
+      if (elements.mobileGuideModal) elements.mobileGuideModal.classList.remove('show');
+    });
+  }
+
+  // Save to Native Tree on iPhone & Android (APK)
+  if (elements.btnSaveToNativeTree) {
+    elements.btnSaveToNativeTree.addEventListener('click', saveToNativeFolderTree);
+  }
 
   // Keyboard Shortcuts: Spacebar or Enter to Capture
   window.addEventListener('keydown', (e) => {
