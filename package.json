@@ -1,0 +1,14 @@
+{
+  "name": "toolscanpdf",
+  "version": "1.0.0",
+  "description": "Ứng dụng Web chụp ảnh từ camera và xuất PDF theo cú pháp chuẩn",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1"
+  },
+  "author": "",
+  "license": "ISC"
+}
