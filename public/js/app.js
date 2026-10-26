@@ -1061,6 +1061,16 @@ function openSuccessModal(fileName, folderPath) {
   const endP = startP + state.capturedPages.length - 1;
   elements.successPagesSummary.textContent = `${state.capturedPages.length} trang (Từ trang ${startP} đến trang ${endP})`;
 
+  if (!state.serverAvailable) {
+    if (elements.btnOpenExplorerFolder) {
+      elements.btnOpenExplorerFolder.textContent = (navigator.share) ? 'Chia Sẻ / Lưu Tệp' : 'Tải Lại File PDF';
+    }
+  } else {
+    if (elements.btnOpenExplorerFolder) {
+      elements.btnOpenExplorerFolder.textContent = 'Mở Thư Mục Chứa File';
+    }
+  }
+
   elements.successModal.classList.add('show');
 }
 
@@ -1271,7 +1281,7 @@ function setupEventListeners() {
     }
   });
 
-  elements.btnOpenExplorerFolder.addEventListener('click', () => {
+  elements.btnOpenExplorerFolder.addEventListener('click', async () => {
     if (state.serverAvailable) {
       fetch('/api/open-folder', {
         method: 'POST',
@@ -1280,7 +1290,25 @@ function setupEventListeners() {
       }).then(() => showToast('Đang mở thư mục trên Windows Explorer...', 'success'))
         .catch(() => showToast('Không thể mở Explorer từ xa', 'error'));
     } else {
-      showToast(`Vui lòng kiểm tra file trong thư mục: ${state.folderPath}`, 'success');
+      // Static mode (GitHub Pages, iPhone, Mobile): Web Share API or re-download
+      if (state.lastGeneratedPdfBlob) {
+        const fileName = state.lastGeneratedFilename || 'TaiLieuScan.pdf';
+        const file = new File([state.lastGeneratedPdfBlob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: fileName,
+              text: 'Tài liệu PDF vừa quét bằng Cam Scan to PDF'
+            });
+            return;
+          } catch (e) {
+            if (e.name !== 'AbortError') console.warn(e);
+          }
+        }
+        downloadBlob(state.lastGeneratedPdfBlob, fileName);
+        showToast(`Đã tải xuống file: ${fileName}`, 'success');
+      }
     }
   });
 

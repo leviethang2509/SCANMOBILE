@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#0b0f19">
+  <title>Cam Scan to PDF - Chụp Ảnh & Xuất File PDF Tự Động</title>
+  <meta name="description" content="Trang web hỗ trợ chụp ảnh tài liệu qua camera, đánh số trang tự động và chuyển đổi sang file PDF chuẩn hóa theo hồ sơ.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="logo-badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+            <circle cx="12" cy="13" r="3"/>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <h1>CAM SCAN TO PDF <span class="badge-tag">Chuyên Nghiệp</span></h1>
+          <p>Chụp ảnh tài liệu lần lượt & Chuyển đổi PDF chuẩn hồ sơ</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="nav-pills">
+          <button id="navScanTab" class="nav-pill-btn active">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+              <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+              <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+              <rect width="10" height="8" x="7" y="8" rx="1"/>
+            </svg>
+            Quét Tài Liệu
+          </button>
+          <button id="navHistoryTab" class="nav-pill-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Lịch Sử Lưu (<span id="historyCount">0</span>)
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 4-Step Process Guide -->
+    <div class="workflow-stepper">
+      <div id="stepCard1" class="step-card active">
+        <div class="step-num">1</div>
+        <div class="step-info">
+          <span class="step-title">Thư Mục & Hồ Sơ</span>
+          <span class="step-desc">Chọn thư mục lưu & tên hồ sơ</span>
+        </div>
+      </div>
+      <div id="stepCard2" class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-info">
+          <span class="step-title">Trang Bắt Đầu</span>
+          <span class="step-desc">Nhập số trang đánh dấu</span>
+        </div>
+      </div>
+      <div id="stepCard3" class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-info">
+          <span class="step-title">Chụp Camera</span>
+          <span class="step-desc">Chụp lần lượt theo số trang</span>
+        </div>
+      </div>
+      <div id="stepCard4" class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-info">
+          <span class="step-title">Xem Lại & Xuất PDF</span>
+          <span class="step-desc">Xác nhận & lưu TenHoSo_pA_pB</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN SCANNING VIEW -->
+    <main id="scanView" class="workspace-grid">
+      
+      <!-- LEFT SIDEBAR: CONFIGURATION (B1 & B2) -->
+      <aside class="sidebar-panel">
+        <div class="glass-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              B1. Thư Mục Lưu Trữ
+            </div>
+            <span id="folderStatusBadge" class="badge-tag">Chưa chọn</span>
+          </div>
+
+          <!-- B1: Chọn thư mục và lưu lại lịch sử -->
+          <div class="form-group">
+            <label class="form-label" for="folderDisplayInput">
+              Thư mục xuất file PDF <span class="required">*</span>
+            </label>
+            <div class="input-with-button">
+              <input type="text" id="folderDisplayInput" class="form-input form-input-mono" placeholder="Nhấp chọn thư mục..." readonly>
+              <button type="button" id="btnPickFolder" class="btn btn-primary" title="Chọn thư mục trên máy tính">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 8 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+                </svg>
+                Chọn...
+              </button>
+            </div>
+          </div>
+
+          <!-- Lịch sử thư mục đã lưu -->
+          <div class="form-group">
+            <label class="form-label" for="folderHistorySelect">
+              Lịch sử thư mục đã dùng (chọn nhanh):
+            </label>
+            <select id="folderHistorySelect" class="folder-history-select">
+              <option value="">-- Danh sách thư mục đã dùng trước đó --</option>
+            </select>
+          </div>
+
+          <div class="panel-header" style="margin-top: 8px;">
+            <div class="panel-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              B2. Thông Tin Hồ Sơ & Trang
+            </div>
+          </div>
+
+          <!-- B5: Tên hồ sơ -->
+          <div class="form-group">
+            <label class="form-label" for="documentTitleInput">
+              Tên hồ sơ / Mã tài liệu <span class="required">*</span>
+            </label>
+            <input type="text" id="documentTitleInput" class="form-input" placeholder="Ví dụ: HoSoKhachHang, HopDong_2026..." value="HoSoTaiLieu">
+          </div>
+
+          <!-- B2: Chọn số trang bắt đầu -->
+          <div class="form-group">
+            <label class="form-label" for="startPageInput">
+              Số trang bắt đầu quét <span class="required">*</span>
+            </label>
+            <div class="input-stepper">
+              <button type="button" id="btnDecStartPage" class="stepper-btn" title="Giảm 1 trang">-</button>
+              <input type="number" id="startPageInput" min="1" max="9999" value="1">
+              <button type="button" id="btnIncStartPage" class="stepper-btn" title="Tăng 1 trang">+</button>
+            </div>
+          </div>
+
+          <!-- Preview Tên File chuẩn B5 -->
+          <div class="preview-filename-card">
+            <div class="preview-filename-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 11 12 14 22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+              Cú pháp tên file PDF dự kiến (B5):
+            </div>
+            <div id="previewFilenameDisplay" class="preview-filename-value">
+              HoSoTaiLieu_p1_p1.pdf
+            </div>
+          </div>
+
+          <!-- Tùy chọn đóng dấu số trang -->
+          <label class="custom-checkbox">
+            <input type="checkbox" id="chkWatermarkPage" checked>
+            <span class="checkmark"></span>
+            In số trang trang trọng ở góc dưới PDF ("Trang X")
+          </label>
+
+          <!-- Tùy chọn chất lượng ảnh -->
+          <div class="form-group">
+            <label class="form-label" for="filterSelect">Bộ lọc nâng cao tài liệu:</label>
+            <select id="filterSelect" class="select-compact" style="width: 100%;">
+              <option value="none">Màu gốc (Chân thực)</option>
+              <option value="enhance" selected>Tài liệu nét cao (Tăng tương phản & sắc nét)</option>
+              <option value="grayscale">Trắng đen văn bản (B&W Scan)</option>
+            </select>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- RIGHT COLUMN: CAMERA SCANNER STATION (B3) -->
+      <section class="scanner-viewport-panel">
+        
+        <div class="glass-panel" style="padding: 16px 20px;">
+          
+          <!-- Viewport Toolbar -->
+          <div class="viewport-toolbar">
+            <div class="camera-controls-group">
+              <label for="cameraSelect" style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted);">Camera:</label>
+              <select id="cameraSelect" class="select-compact" style="max-width: 200px;">
+                <option value="">Đang tìm camera...</option>
+              </select>
+
+              <select id="resolutionSelect" class="select-compact">
+                <option value="1080" selected>Full HD (1080p)</option>
+                <option value="720">HD (720p)</option>
+                <option value="4k">4K Siêu nét (Nếu hỗ trợ)</option>
+              </select>
+
+              <button type="button" id="btnToggleGuide" class="btn btn-secondary btn-sm" title="Bật/Tắt khung căn A4">
+                Khung căn A4
+              </button>
+            </div>
+
+            <div class="camera-controls-group">
+              <label class="custom-checkbox" style="font-size: 0.75rem;">
+                <input type="checkbox" id="chkShutterSound" checked>
+                <span class="checkmark"></span>
+                Âm thanh
+              </label>
+
+              <!-- Quick Switch Camera for iPhone / Mobile -->
+              <button type="button" id="btnSwitchCam" class="btn btn-secondary btn-sm" title="Đổi camera trước/sau">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 2.21.896 4.21 2.344 5.656l1.414-1.414A5.98 5.98 0 0 1 6 10c0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.657-.672 3.157-1.758 4.242l1.414 1.414A7.96 7.96 0 0 0 20 10z"/>
+                  <path d="m15 15 4 4 4-4"/>
+                </svg>
+                Đổi Cam
+              </button>
+
+              <button type="button" id="btnRestartCam" class="btn btn-secondary btn-sm" title="Khởi động lại Camera">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+                Làm mới
+              </button>
+            </div>
+          </div>
+
+          <!-- B3: Live Camera Viewfinder with Note Số Trang -->
+          <div class="viewfinder-wrapper" id="viewfinderWrapper">
+            <video id="camVideo" autoplay playsinline webkit-playsinline muted></video>
+            <canvas id="captureCanvas"></canvas>
+            
+            <!-- Shutter flash animation -->
+            <div id="shutterFlash" class="shutter-flash"></div>
+
+            <!-- B3 Note: Prominent Active Page Note Badge -->
+            <div class="current-page-hud">
+              <div class="hud-pulse-dot"></div>
+              <div>
+                <div class="hud-page-label">Đang Chụp</div>
+                <div class="hud-page-number" id="hudPageNumber">TRANG 1</div>
+              </div>
+            </div>
+
+            <!-- Document Guide Frame Overlay (A4 style) -->
+            <div id="documentGuide" class="document-guide-overlay">
+              <div class="guide-corner top-left"></div>
+              <div class="guide-corner top-right"></div>
+              <div class="guide-corner bottom-left"></div>
+              <div class="guide-corner bottom-right"></div>
+              <div class="guide-text-indicator">Đặt tài liệu ngay ngắn trong khung căn A4</div>
+            </div>
+          </div>
+
+          <!-- Shutter Action Bar -->
+          <div class="shutter-action-bar">
+            
+            <div>
+              <div style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">Tổng trang đã chụp:</div>
+              <div style="font-size: 1.25rem; font-weight: 800; font-family: var(--font-mono); color: #fff;">
+                <span id="capturedCountBadge" style="color: #10b981;">0</span> trang
+              </div>
+            </div>
+
+            <!-- B3 Action: Nút Chụp Trang Lần Lượt -->
+            <button type="button" id="btnCapture" class="capture-btn-huge" title="Nhấn Space hoặc Enter để chụp">
+              <svg class="camera-shutter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="4" fill="currentColor"/>
+              </svg>
+              <span>CHỤP TRANG <span id="captureBtnPageNum">1</span></span>
+              <span class="hotkey-badge">Phím Space / Enter</span>
+            </button>
+
+            <!-- B4: Nút Xem lại và Xác nhận lưu -->
+            <button type="button" id="btnOpenReview" class="btn btn-emerald btn-lg" disabled title="Xem lại các trang đã chụp trước khi xuất PDF">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <span>Xem Lại & Lưu PDF</span>
+            </button>
+
+          </div>
+
+          <!-- B3 Check: Live Thumbnail Filmstrip (Dải ảnh vừa chụp để check số trang) -->
+          <div class="thumbnail-strip-panel">
+            <div class="strip-header">
+              <span class="strip-title">Dải ảnh đã chụp lần lượt (Nhấp vào ảnh để kiểm tra số trang):</span>
+              <button type="button" id="btnClearAllSnaps" class="btn btn-secondary btn-sm" style="font-size: 0.75rem;">
+                Xóa tất cả chụp lại
+              </button>
+            </div>
+            <div id="thumbnailFilmstrip" class="thumbnail-filmstrip">
+              <div class="strip-empty-placeholder">
+                Chưa có ảnh nào được chụp. Nhấn "CHỤP TRANG 1" hoặc phím Space để bắt đầu.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- HISTORY VIEW (TAB 2) -->
+    <section id="historyView" class="glass-panel hidden">
+      <div class="panel-header">
+        <div class="panel-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          Lịch Sử Quét & Lưu File PDF
+        </div>
+        <button type="button" id="btnClearHistory" class="btn btn-danger btn-sm">
+          Xóa Lịch Sử
+        </button>
+      </div>
+
+      <div class="history-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Thời Gian</th>
+              <th>Tên Hồ Sơ</th>
+              <th>Trang</th>
+              <th>Tên File PDF (Cú pháp chuẩn)</th>
+              <th>Thư Mục Lưu</th>
+              <th>Thao Tác</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 32px;">
+                Chưa có lịch sử lưu hồ sơ nào.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- B4 MODAL: XEM LẠI VÀ XÁC NHẬN LƯU (REVIEW MODAL) -->
+  <div id="reviewModal" class="modal-backdrop">
+    <div class="modal-content">
+      
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <path d="m9 15 2 2 4-4"/>
+          </svg>
+          B4. Xem Lại & Xác Nhận Hồ Sơ (<span id="modalReviewCount">0</span> trang)
+        </div>
+        <button type="button" class="modal-close-btn" id="btnCloseReviewModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        
+        <!-- B4 Summary Info Box -->
+        <div class="confirm-summary-box">
+          <div class="summary-item">
+            <span class="summary-label">Tên Hồ Sơ:</span>
+            <span id="reviewDocTitle" class="summary-value">HoSoTaiLieu</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Khoảng Trang Scan:</span>
+            <span id="reviewPageRange" class="summary-value summary-value-highlight">Từ trang 1 đến trang 1 (Tổng 1 trang)</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Tên File Xuất Bản (B5):</span>
+            <span id="reviewFilename" class="summary-value summary-value-highlight">HoSoTaiLieu_p1_p1.pdf</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Thư Mục Đích (B1 & B6):</span>
+            <span id="reviewFolderPath" class="summary-value" style="word-break: break-all;">Chưa chọn thư mục</span>
+          </div>
+        </div>
+
+        <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+          <span>Kiểm tra lần lượt từng trang (Xoay, phóng to hoặc xóa trang mờ):</span>
+          <span style="font-size: 0.75rem; color: #38bdf8;">* Bạn có thể bấm xoay nếu trang bị nghiêng</span>
+        </div>
+
+        <!-- B4 Gallery of all scanned pages -->
+        <div id="reviewGalleryGrid" class="review-gallery-grid">
+          <!-- Dynamically populated review cards -->
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="btnReviewAddMore" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Chụp Thêm Trang
+        </button>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" id="btnCancelReview" class="btn btn-secondary">
+            Hủy Bỏ
+          </button>
+          
+          <!-- B6 Action: Xác nhận lưu vào thư mục -->
+          <button type="button" id="btnConfirmSavePdf" class="btn btn-emerald btn-lg">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Xác Nhận & Xuất File PDF
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ZOOM INSPECTOR MODAL -->
+  <div id="zoomModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 800px; background: rgba(0,0,0,0.95);">
+      <div class="modal-header">
+        <div class="modal-title" id="zoomModalTitle">Kiểm tra chi tiết trang</div>
+        <button type="button" class="modal-close-btn" id="btnCloseZoomModal">&times;</button>
+      </div>
+      <div class="modal-body" style="align-items: center; justify-content: center; padding: 12px; overflow: hidden;">
+        <img id="zoomImage" src="" alt="Trang phóng to" style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS EXPORT MODAL (B6) -->
+  <div id="successModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 580px;">
+      <div class="modal-body">
+        <div class="success-card">
+          <div class="success-icon-badge">✓</div>
+          <h3>Xuất & Lưu PDF Thành Công!</h3>
+          <p style="color: var(--text-muted); font-size: 0.875rem;">
+            Tệp PDF đã được tạo và lưu vào thư mục đích theo đúng cú pháp yêu cầu.
+          </p>
+
+          <div class="success-details">
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Tên File PDF (B5):</span>
+              <div id="successFilename" style="font-family: var(--font-mono); font-weight: 700; color: #38bdf8; word-break: break-all;"></div>
+            </div>
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Thư mục lưu trữ (B6):</span>
+              <div id="successFolderPath" style="font-size: 0.85rem; color: #fff; word-break: break-all;"></div>
+            </div>
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Tổng số trang:</span>
+              <div id="successPagesSummary" style="font-weight: 700; color: #10b981;"></div>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; width: 100%; gap: 10px; margin-top: 10px;">
+            <div style="display: flex; gap: 10px; width: 100%;">
+              <button type="button" id="btnOpenPdfTab" class="btn btn-primary" style="flex: 1;">
+                Xem File PDF Vừa Tạo
+              </button>
+              <button type="button" id="btnOpenExplorerFolder" class="btn btn-secondary" style="flex: 1;">
+                Mở Thư Mục Chứa File
+              </button>
+            </div>
+            
+            <button type="button" id="btnStartNewScan" class="btn btn-emerald" style="width: 100%; padding: 12px;">
+              Quét Bộ Hồ Sơ Mới Tiếp Theo
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Local jsPDF Bundle (Works 100% Offline) with fallback to CDN if needed -->
+  <script src="js/jspdf.umd.min.js"></script>
+  <script>
+    if (!window.jspdf) {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>');
+    }
+  </script>
+
+  <!-- Application Logic -->
+  <script src="js/app.js"></script>
+</body>
+</html>
